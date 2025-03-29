@@ -10,6 +10,9 @@ class AutoTokenizer:
         """
             input: truncate, from_pretrained, return_tensors, max_tokens
             output: tokenizer object
+            truncation side = "left" or "right"
+            from_pretrained = True or False
+            return_tensors = True or False
         """
         self.max_tokens = max_tokens
         self.truncate = truncation_side

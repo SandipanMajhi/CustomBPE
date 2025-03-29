@@ -2,7 +2,7 @@ import json
 from collections import Counter, deque
 
 class BPEModel:
-    def __init__(self, training_text_path = None, is_train = False, max_vocab_size = 50000):
+    def __init__(self, is_train = False, max_vocab_size = 50000):
         self.vocab = {}
         self.merge_rules = {}
         self.inverse_vocab = {}
@@ -12,11 +12,7 @@ class BPEModel:
         self.save_merge_path = f"{self.save_root}/bpe_merge.json"
         self.inverse_vocab_path = f"{self.save_root}/bpe_inverse_vocab.json"
 
-        self.training_text_path = training_text_path
         self.is_train = is_train
-        if self.is_train:
-            text = self.load_text()
-            self.train(text, vocab_size = 50000)
 
         if not self.is_train:
             self.load_vocab()
@@ -29,7 +25,7 @@ class BPEModel:
             self.vocab = json.load(f)
         print(f"Vocabulary loaded from {self.save_vocab_path}")
         
-
+        
     def load_merge_rules(self):
         with open(self.save_merge_path, 'r', encoding = 'utf-8') as f:
             self.merge_rules = json.load(f)
