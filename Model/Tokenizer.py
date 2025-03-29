@@ -77,5 +77,8 @@ class AutoTokenizer:
 
 
     def decode(self, **kwargs):
+        """
+            Clasical Decoding Function
+        """
         pass
 
