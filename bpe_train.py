@@ -12,8 +12,13 @@ if __name__ == "__main__":
     batch_size = 10
 
     for i in tqdm(range(0, data.shape[0], batch_size)):
+        
+        if len(bpe_model.inverse_vocab) >= bpe_model.vocab_size:
+            break
+
         text = [data.iloc[j,0] for j in range(i, i+batch_size)]
         text = " ".join(text)
+
         bpe_model.train(text, special_tokens = ["<CLS>", "<SEP>", "<MASK>", "<PAD>"])
 
 
