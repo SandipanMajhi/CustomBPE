@@ -1,4 +1,5 @@
 import json
+import pickle as pkl
 from collections import Counter, deque
 
 class BPEModel:
@@ -10,9 +11,9 @@ class BPEModel:
         self.vocab_size = max_vocab_size
 
         self.save_root = "Data"
-        self.save_vocab_path = f"{self.save_root}/bpe_vocab.json"
-        self.save_merge_path = f"{self.save_root}/bpe_merge.json"
-        self.inverse_vocab_path = f"{self.save_root}/bpe_inverse_vocab.json"
+        self.save_vocab_path = f"{self.save_root}/bpe_vocab.pkl"
+        self.save_merge_path = f"{self.save_root}/bpe_merge.pkl"
+        self.inverse_vocab_path = f"{self.save_root}/bpe_inverse_vocab.pkl"
 
         self.is_train = is_train
 
@@ -23,19 +24,19 @@ class BPEModel:
 
     
     def load_vocab(self):
-        with open(self.save_vocab_path, 'r', encoding = 'utf-8') as f:
-            self.vocab = json.load(f)
+        with open(self.save_vocab_path, 'rb') as f:
+            self.vocab = pkl.load(f)
         print(f"Vocabulary loaded from {self.save_vocab_path}")
         
 
     def load_merge_rules(self):
-        with open(self.save_merge_path, 'r', encoding = 'utf-8') as f:
-            self.merge_rules = json.load(f)
+        with open(self.save_merge_path, 'rb') as f:
+            self.merge_rules = pkl.load(f)
         print(f"Merge rules loaded from {self.save_merge_path}")
     
     def load_inverse_vocab(self):
-        with open(self.inverse_vocab_path, 'r', encoding = 'utf-8') as f:
-            self.inverse_vocab = json.load(f)
+        with open(self.inverse_vocab_path, 'rb') as f:
+            self.inverse_vocab = pkl.load(f)
         print(f"Inverse vocabulary loaded from {self.inverse_vocab_path}")
 
 
@@ -46,7 +47,7 @@ class BPEModel:
         return text
 
 
-    def train(self, text, special_tokens = ["[CLS]", "[SEP]", "[MASK]", "[PAD]"]):
+    def train(self, text, batched = True, special_tokens = ["[CLS]", "[SEP]", "[MASK]", "[PAD]"]):
         preprocess_text = []
         for i in range(len(text)):
             if text[i] == " " and i != 0:
@@ -68,8 +69,13 @@ class BPEModel:
 
         unique_chars.extend(special_tokens)
 
-        self.vocab = {i : char for i, char in enumerate(unique_chars)}
-        self.inverse_vocab = {char : i for i, char in enumerate(unique_chars)}
+        # if not batched:
+        #     self.vocab = {i : char for i, char in enumerate(unique_chars)}
+        #     self.inverse_vocab = {char : i for i, char in enumerate(unique_chars)}
+        # else:
+        #     self.load_inverse_vocab()
+        #     self.load_merge_rules()
+        #     self.load_vocab()
 
         token_ids = [self.inverse_vocab[char] for char in preprocess_text]
 
@@ -91,6 +97,8 @@ class BPEModel:
 
     def find_most_frequent(self, token_ids):
         pairs = Counter(zip(token_ids, token_ids[1:]))
+        if not pairs:
+            return None
         return max(pairs.items(), key = lambda x : x[1])[0]
     
 
@@ -168,12 +176,12 @@ class BPEModel:
 
     def save(self):
 
-        with open(self.save_vocab_path, 'w', encoding = 'utf-8') as f:
-            json.dump(self.vocab, f, ensure_ascii = False)
-        with open(self.save_merge_path, 'w', encoding = 'utf-8') as f:
-            json.dump(self.merge_rules, f, ensure_ascii = False)
-        with open(self.inverse_vocab_path, 'w', encoding = 'utf-8') as f:
-            json.dump(self.inverse_vocab, f, ensure_ascii = False)
+        with open(self.save_vocab_path, 'wb') as f:
+            pkl.dump(self.vocab, f)
+        with open(self.save_merge_path, 'wb') as f:
+            pkl.dump(self.merge_rules, f)
+        with open(self.inverse_vocab_path, 'wb') as f:
+            pkl.dump(self.inverse_vocab, f)
 
         print(f"Vocabulary saved to {self.save_vocab_path}")
         print(f"Merge rules saved to {self.save_merge_path}")
