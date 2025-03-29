@@ -183,10 +183,11 @@ class BPEModel:
 
 
             
-
+class DomainBPE(BPEModel):
+    def __init__(self, reference_text, training_text_path = None, is_train = False, max_vocab_size = 50000):
+        super().__init__(training_text_path, is_train, max_vocab_size)
         
-
-
+        self.reference_text = reference_text
 
 
 
