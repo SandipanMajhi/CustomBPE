@@ -8,9 +8,9 @@ class BPEModel:
         self.inverse_vocab = {}
 
         self.save_root = "Data"
-        self.save_vocab_path = f"{self.save_root}/vocab.json"
-        self.save_merge_path = f"{self.save_root}/merge.json"
-        self.inverse_vocab_path = f"{self.save_root}/inverse_vocab.json"
+        self.save_vocab_path = f"{self.save_root}/bpe_vocab.json"
+        self.save_merge_path = f"{self.save_root}/bpe_merge.json"
+        self.inverse_vocab_path = f"{self.save_root}/bpe_inverse_vocab.json"
 
         self.training_text_path = training_text_path
         self.is_train = is_train
@@ -176,6 +176,7 @@ class BPEModel:
             json.dump(self.merge_rules, f, ensure_ascii = False)
         with open(self.inverse_vocab_path, 'w', encoding = 'utf-8') as f:
             json.dump(self.inverse_vocab, f, ensure_ascii = False)
+
         print(f"Vocabulary saved to {self.save_vocab_path}")
         print(f"Merge rules saved to {self.save_merge_path}")
         print(f"Inverse vocabulary saved to {self.inverse_vocab_path}")
