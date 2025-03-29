@@ -79,9 +79,14 @@ class AutoTokenizer:
         return tokenized_texts, attention_masks
 
 
-    def decode(self, **kwargs):
+    def batch_decode(self, tensors):
         """
             Clasical Decoding Function
         """
-        pass
+        decoded_texts = []
+        for tensor in tensors:
+            tokens = tensor.tolist()
+            tokens = self.bpe_model.decode(tokens)
+            decoded_texts.append(tokens)
+        return decoded_texts
 
