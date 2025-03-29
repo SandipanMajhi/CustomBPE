@@ -203,6 +203,8 @@ class BPEModel:
         mlm_count = int(len(encoded) * mask_rate)
         mlm_idx = random.choices(range(len(encoded)), k = mlm_count)
 
+        print(mlm_idx)
+
         for idx in mlm_idx:
             encoded[idx] = self.inverse_vocab["<MASK>"][0] 
 

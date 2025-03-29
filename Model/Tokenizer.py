@@ -64,7 +64,7 @@ class AutoTokenizer:
         ### Pad ###
         for i in range(len(tokenized_texts)):
             if len(tokenized_texts[i]) < self.max_tokens:
-                tokenized_texts[i] += self.bpe_model.vocab["[PAD]"] * (self.max_tokens - len(tokenized_texts[i]))
+                tokenized_texts[i] += self.bpe_model.vocab["<PAD>"] * (self.max_tokens - len(tokenized_texts[i]))
                 attention_masks[i] += [float('-inf')] * (self.max_tokens - len(tokenized_texts[i]))
 
 
