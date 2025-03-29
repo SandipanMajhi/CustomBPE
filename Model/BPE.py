@@ -45,7 +45,7 @@ class BPEModel:
         return text
 
 
-    def train(self, text, train_iteration, special_tokens = ["<CLS>", "<SEP>", "<MASK>", "<PAD>"]):
+    def train(self, text, special_tokens = ["<CLS>", "<SEP>", "<MASK>", "<PAD>"]):
 
         batch_merge_rules = {}
 
@@ -79,12 +79,11 @@ class BPEModel:
             if char not in self.inverse_vocab:
                 idx = len(self.vocab)
                 self.vocab[idx] = char
-                self.inverse_vocab[char] = idx 
+                self.inverse_vocab[char] = [idx] 
 
 
-        if len(self.vocab) < self.vocab_size:
+        if len(self.inverse_vocab) < self.vocab_size:
 
-            # token_ids = [self.inverse_vocab[char] for char in preprocess_text] 
             token_ids = self.encode(text)
 
             for new_idx in range(len(self.vocab), self.vocab_size):
@@ -94,17 +93,17 @@ class BPEModel:
                 token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, new_idx)
                 batch_merge_rules[most_freq_pairs_idx] = new_idx
                 
-
             for (old_0, old_1), new_idx in batch_merge_rules.items():
                 self.vocab[new_idx] = self.vocab[old_0] + self.vocab[old_1]
-                self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]] = new_idx
+                # self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]] = new_idx
+                if self.vocab[old_0] + self.vocab[old_1] not in self.inverse_vocab:
+                    self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]] = [new_idx]
+                else:
+                    self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]].append(new_idx)
                 if (old_0, old_1) not in self.merge_rules:
                     self.merge_rules[(old_0, old_1)] = new_idx
 
             self.save()
-
-    def compress_vocab(self):
-        pass
     
 
     def find_most_frequent(self, token_ids):
@@ -144,7 +143,8 @@ class BPEModel:
 
         for token in tokens:
             if token in self.inverse_vocab:
-                token_ids.append(self.inverse_vocab[token])
+                # token_ids.append(self.inverse_vocab[token])
+                token_ids.append(self.inverse_vocab[token][0])
             else:
                 token_ids.extend(self.tokenize_with_bpe(token))
 
@@ -152,7 +152,7 @@ class BPEModel:
 
 
     def tokenize_with_bpe(self, token):
-        token_ids = [self.inverse_vocab[char] for char in token]
+        token_ids = [self.inverse_vocab[char][0] for char in token]
 
         can_merge = True
         while can_merge and len(token_ids) > 1:
