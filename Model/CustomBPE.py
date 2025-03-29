@@ -7,6 +7,8 @@ class BPEModel:
         self.merge_rules = {}
         self.inverse_vocab = {}
 
+        self.vocab_size = max_vocab_size
+
         self.save_root = "Data"
         self.save_vocab_path = f"{self.save_root}/bpe_vocab.json"
         self.save_merge_path = f"{self.save_root}/bpe_merge.json"
@@ -25,7 +27,7 @@ class BPEModel:
             self.vocab = json.load(f)
         print(f"Vocabulary loaded from {self.save_vocab_path}")
         
-        
+
     def load_merge_rules(self):
         with open(self.save_merge_path, 'r', encoding = 'utf-8') as f:
             self.merge_rules = json.load(f)
@@ -44,7 +46,7 @@ class BPEModel:
         return text
 
 
-    def train(self, text, vocab_size, special_tokens = ["[CLS]", "[SEP]", "[MASK]", "[PAD]"]):
+    def train(self, text, special_tokens = ["[CLS]", "[SEP]", "[MASK]", "[PAD]"]):
         preprocess_text = []
         for i in range(len(text)):
             if text[i] == " " and i != 0:
@@ -71,7 +73,7 @@ class BPEModel:
 
         token_ids = [self.inverse_vocab[char] for char in preprocess_text]
 
-        for new_idx in range(len(self.vocab), vocab_size):
+        for new_idx in range(len(self.vocab), self.vocab_size):
             most_freq_pairs_idx = self.find_most_frequent(token_ids=token_ids)
             if most_freq_pairs_idx is None:
                 break
