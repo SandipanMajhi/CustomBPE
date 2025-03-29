@@ -2,7 +2,7 @@ import torch
 
 
 import re
-from Model.CustomBPE import BPEModel
+from Model.BPE import BPEModel
 
 
 class AutoTokenizer:

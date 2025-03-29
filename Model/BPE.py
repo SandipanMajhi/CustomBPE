@@ -1,3 +1,4 @@
+import os
 import json
 import pickle as pkl
 from collections import Counter, deque
@@ -26,18 +27,15 @@ class BPEModel:
     def load_vocab(self):
         with open(self.save_vocab_path, 'rb') as f:
             self.vocab = pkl.load(f)
-        print(f"Vocabulary loaded from {self.save_vocab_path}")
         
 
     def load_merge_rules(self):
         with open(self.save_merge_path, 'rb') as f:
             self.merge_rules = pkl.load(f)
-        print(f"Merge rules loaded from {self.save_merge_path}")
     
     def load_inverse_vocab(self):
         with open(self.inverse_vocab_path, 'rb') as f:
             self.inverse_vocab = pkl.load(f)
-        print(f"Inverse vocabulary loaded from {self.inverse_vocab_path}")
 
 
     def load_text(self):
@@ -47,7 +45,10 @@ class BPEModel:
         return text
 
 
-    def train(self, text, batched = True, special_tokens = ["[CLS]", "[SEP]", "[MASK]", "[PAD]"]):
+    def train(self, text, train_iteration, special_tokens = ["<CLS>", "<SEP>", "<MASK>", "<PAD>"]):
+
+        batch_merge_rules = {}
+
         preprocess_text = []
         for i in range(len(text)):
             if text[i] == " " and i != 0:
@@ -57,7 +58,6 @@ class BPEModel:
                 preprocess_text.append(text[i])
 
         preprocess_text = "".join(preprocess_text)
-
         unique_chars = [chr(i) for i in range(256)]
 
         for character in sorted(set(preprocess_text)):
@@ -69,37 +69,51 @@ class BPEModel:
 
         unique_chars.extend(special_tokens)
 
-        # if not batched:
-        #     self.vocab = {i : char for i, char in enumerate(unique_chars)}
-        #     self.inverse_vocab = {char : i for i, char in enumerate(unique_chars)}
-        # else:
-        #     self.load_inverse_vocab()
-        #     self.load_merge_rules()
-        #     self.load_vocab()
+        if os.path.exists(self.save_vocab_path):
+            self.load_inverse_vocab()
+            self.load_merge_rules()
+            self.load_vocab()
 
-        token_ids = [self.inverse_vocab[char] for char in preprocess_text]
 
-        for new_idx in range(len(self.vocab), self.vocab_size):
-            most_freq_pairs_idx = self.find_most_frequent(token_ids=token_ids)
-            if most_freq_pairs_idx is None:
-                break
-            ### Replace the pair ##
-            token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, new_idx)
-            ### Add a merge rule ##
-            self.merge_rules[most_freq_pairs_idx] = new_idx
+        for char in unique_chars:
+            if char not in self.inverse_vocab:
+                idx = len(self.vocab)
+                self.vocab[idx] = char
+                self.inverse_vocab[char] = idx 
 
-        for (old_0, old_1), new_idx in self.merge_rules.items():
-            self.vocab[new_idx] = self.vocab[old_0] + self.vocab[old_1]
-            self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]] = new_idx
 
-        self.save()
+        if len(self.vocab) < self.vocab_size:
+
+            # token_ids = [self.inverse_vocab[char] for char in preprocess_text] 
+            token_ids = self.encode(text)
+
+            for new_idx in range(len(self.vocab), self.vocab_size):
+                most_freq_pairs_idx = self.find_most_frequent(token_ids=token_ids)
+                if most_freq_pairs_idx is None:
+                    break
+                token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, new_idx)
+                batch_merge_rules[most_freq_pairs_idx] = new_idx
+                
+
+            for (old_0, old_1), new_idx in batch_merge_rules.items():
+                self.vocab[new_idx] = self.vocab[old_0] + self.vocab[old_1]
+                self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]] = new_idx
+                if (old_0, old_1) not in self.merge_rules:
+                    self.merge_rules[(old_0, old_1)] = new_idx
+
+            self.save()
+
+    def compress_vocab(self):
+        pass
     
 
     def find_most_frequent(self, token_ids):
         pairs = Counter(zip(token_ids, token_ids[1:]))
-        if not pairs:
+        max_term, max_val = max(pairs.items(), key = lambda x : x[1])
+        if max_val > 1:
+            return max_term
+        else:
             return None
-        return max(pairs.items(), key = lambda x : x[1])[0]
     
 
     def replace_pairs(self, token_ids, pairs_idx, new_idx):
@@ -182,10 +196,6 @@ class BPEModel:
             pkl.dump(self.merge_rules, f)
         with open(self.inverse_vocab_path, 'wb') as f:
             pkl.dump(self.inverse_vocab, f)
-
-        print(f"Vocabulary saved to {self.save_vocab_path}")
-        print(f"Merge rules saved to {self.save_merge_path}")
-        print(f"Inverse vocabulary saved to {self.inverse_vocab_path}")
 
 
             
