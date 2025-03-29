@@ -1,5 +1,5 @@
 import os
-import json
+import random
 import pickle as pkl
 from collections import Counter, deque
 
@@ -196,6 +196,17 @@ class BPEModel:
             pkl.dump(self.merge_rules, f)
         with open(self.inverse_vocab_path, 'wb') as f:
             pkl.dump(self.inverse_vocab, f)
+
+
+    def prepare_mlm_seq(self, text, mask_rate = 0.15):
+        encoded = self.encode(text)
+        mlm_count = int(len(encoded) * mask_rate)
+        mlm_idx = random.choices(range(len(encoded)), k = mlm_count)
+
+        for idx in mlm_idx:
+            encoded[idx] = self.inverse_vocab["<MASK>"][0] 
+
+        return encoded
 
 
             
