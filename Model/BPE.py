@@ -206,9 +206,26 @@ class BPEModel:
         print(mlm_idx)
 
         for idx in mlm_idx:
-            encoded[idx] = self.inverse_vocab["<MASK>"][0] 
+            if idx != 0:
+                encoded[idx] = self.inverse_vocab["<MASK>"][0] 
 
         return encoded
+
+
+class BERTTokenizer(BPEModel):
+    def __init__(self, is_train = False, max_vocab_size = 50000):
+        super().__init__(is_train, max_vocab_size)
+
+    def encode(self, text):
+        token_ids =  super().encode(text)
+        token_ids.insert(0, self.inverse_vocab["<CLS>"][0])
+        return token_ids
+    
+    def decode(self, token_ids):
+        text = super().decode(token_ids)
+        text = text.replace("<CLS>", "")
+        return text
+        
 
 
             
