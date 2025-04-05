@@ -3,6 +3,11 @@ import random
 import pickle as pkl
 from collections import Counter, deque
 
+import re
+import numpy as np
+
+import unicodedata
+
 class BPEModel:
     def __init__(self, is_train = False, max_vocab_size = 50000):
         self.vocab = {}
@@ -131,6 +136,11 @@ class BPEModel:
     
     def encode(self, text):
         tokens = []
+
+        #### Temporary fix for special characters ####
+        text = re.sub(r"’", "'", text)
+
+
         words = text.replace("\n", " \n ").split(' ')
 
         for i, word in enumerate(words):
@@ -185,6 +195,8 @@ class BPEModel:
                 decoded_string += " " + token[1:]
             else:
                 decoded_string += token
+
+        # decoded_string = re.sub(r"(<MASK>)|(<PAD>)|(<CLS>)|(<SEP>)", "", decoded_string)
         return decoded_string
     
 
@@ -203,13 +215,36 @@ class BPEModel:
         mlm_count = int(len(encoded) * mask_rate)
         mlm_idx = random.choices(range(len(encoded)), k = mlm_count)
 
-        print(mlm_idx)
-
         for idx in mlm_idx:
             if idx != 0:
                 encoded[idx] = self.inverse_vocab["<MASK>"][0] 
 
         return encoded
+    
+
+
+    def prepare_mlm(self, tokens, mask_rate = 0.15):
+        
+        indices = np.random.choice(range(len(tokens)), size = int(len(tokens) * mask_rate), replace = False)
+        mlm_index = np.random.choice(indices, size = int(indices.shape[0] * 0.8), replace = False) 
+        
+        # indices = [x.item() for x in list(set(indices) - set(mlm_index))]
+        # random_index_list = np.random.choice(indices, size = int(len(indices) * 0.1), replace = False)
+
+        # indices = [x.item() for x in list(set(indices) - set(random_index_list))]
+        # same_index_list = np.random.choice(indices, size = int(len(indices) * 0.1), replace = False)
+
+        mlm_index = [x.item() for x in mlm_index]
+        # random_index_list = [x.item() for x in random_index_list]
+        # same_index_list = [x.item() for x in same_index_list]
+
+        for idx in mlm_index:
+            if idx != 0:
+                tokens[idx] = self.inverse_vocab["<MASK>"][0]
+
+
+        return tokens, mlm_index
+
 
 
 class BERTTokenizer(BPEModel):

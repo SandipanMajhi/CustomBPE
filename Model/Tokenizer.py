@@ -89,3 +89,62 @@ class AutoTokenizer:
             decoded_texts.append(tokens)
         return decoded_texts
 
+
+class MLMTokenizer(AutoTokenizer):
+    def __init__(self, truncation_side="right", from_pretrained=True, return_tensors=True, max_tokens=150, mask_rate = 0.15):
+        super().__init__(truncation_side, from_pretrained, return_tensors, max_tokens)
+
+        self.mask_rate = mask_rate
+
+    
+    def encode(self, texts):
+        tokenized_texts = []
+        attention_masks = []
+        targets = []
+
+        ### Tokenize the texts
+        for text in texts:
+            original_tokens = self.bpe_model.encode(text)
+            tokens, mlm_ids = self.bpe_model.prepare_mlm(original_tokens, self.mask_rate)
+            tokenized_texts.append(tokens)
+            attention_masks.append([0] * len(tokens))
+
+            
+            ### Create target ###
+            target = [-100] * len(tokens)
+
+            for i in mlm_ids:
+                target[i] = original_tokens[i]
+
+            targets.append(target)
+
+
+        ### Truncate
+        if self.truncate == "left":
+            tokenized_texts = [tokens[-self.max_tokens:] for tokens in tokenized_texts]
+            attention_masks = [mask[-self.max_tokens:] for mask in attention_masks]
+            targets = [target[-self.max_tokens:] for target in targets]
+        elif self.truncate == "right":
+            tokenized_texts = [tokens[:self.max_tokens] for tokens in tokenized_texts]
+            attention_masks = [mask[:self.max_tokens] for mask in attention_masks]
+            targets = [target[:self.max_tokens] for target in targets]
+
+
+        ### Pad ###
+        for i in range(len(tokenized_texts)):
+            if len(tokenized_texts[i]) < self.max_tokens:
+                targets[i].extend([-100] * (self.max_tokens - len(tokenized_texts[i])))
+                attention_masks[i].extend([float('-inf')] * (self.max_tokens - len(tokenized_texts[i])))
+                tokenized_texts[i].extend([self.bpe_model.inverse_vocab["<PAD>"][0]] * (self.max_tokens - len(tokenized_texts[i])))
+
+        ### Convert to tensors ###
+        if self.return_tensors:
+            tokenized_texts = [torch.tensor(tokens) for tokens in tokenized_texts]
+            attention_masks = [torch.tensor(mask) for mask in attention_masks]
+            targets = [torch.tensor(target) for target in targets]
+
+            tokenized_texts = torch.stack(tokenized_texts)
+            attention_masks = torch.stack(attention_masks)
+            targets = torch.stack(targets)
+
+        return tokenized_texts, attention_masks, targets
