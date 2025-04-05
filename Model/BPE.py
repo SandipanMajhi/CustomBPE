@@ -11,7 +11,7 @@ class BPEModel:
 
         self.vocab_size = max_vocab_size
 
-        self.save_root = "Data"
+        self.save_root = "CustomBPE/Data"
         self.save_vocab_path = f"{self.save_root}/bpe_vocab.pkl"
         self.save_merge_path = f"{self.save_root}/bpe_merge.pkl"
         self.inverse_vocab_path = f"{self.save_root}/bpe_inverse_vocab.pkl"
