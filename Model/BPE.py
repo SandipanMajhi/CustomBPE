@@ -84,7 +84,7 @@ class BPEModel:
             if char not in self.inverse_vocab:
                 idx = len(self.vocab)
                 self.vocab[idx] = char
-                self.inverse_vocab[char] = [idx] 
+                self.inverse_vocab[char] = idx 
 
         token_ids = self.encode(text)
         new_idx  = len(self.vocab)
@@ -100,40 +100,20 @@ class BPEModel:
 
             if most_freq_pairs_idx not in self.merge_rules:
 
-                # old_0, old_1 = most_freq_pairs_idx
-                # if old_0 in self.vocab and old_1 in self.vocab:
-                #     if self.vocab[old_0] + self.vocab[old_1] in self.inverse_vocab:
+                old_0, old_1 = most_freq_pairs_idx
+                if old_0 in self.vocab and old_1 in self.vocab:
+                    if self.vocab[old_0] + self.vocab[old_1] in self.inverse_vocab:
 
-                #         batch_merge_rules[(old_0, old_1)] = self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]][0]
-                #         token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, batch_merge_rules[(old_0, old_1)])
+                        self.merge_rules[(old_0, old_1)] = self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]]
+                        token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, self.merge_rules[(old_0, old_1)])
 
-                #     else:
+                    else:
 
-                #         token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, new_idx)
-                #         batch_merge_rules[(old_0, old_1)] = new_idx
-                #         new_idx += 1
-
-                token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, new_idx)
-                batch_merge_rules[most_freq_pairs_idx] = new_idx
-                new_idx += 1
-
-
-        # for new_idx in range(len(self.vocab), self.vocab_size*3):
-        #     most_freq_pairs_idx = self.find_most_frequent(token_ids=token_ids)
-        #     if most_freq_pairs_idx is None:
-        #         break
-        #     token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, new_idx)
-        #     batch_merge_rules[most_freq_pairs_idx] = new_idx
-            
-
-        for (old_0, old_1), new_idx in batch_merge_rules.items():
-            self.vocab[new_idx] = self.vocab[old_0] + self.vocab[old_1]
-            if self.vocab[old_0] + self.vocab[old_1] not in self.inverse_vocab:
-                self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]] = [new_idx]
-            else:
-                self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]].append(new_idx)
-            if (old_0, old_1) not in self.merge_rules:
-                self.merge_rules[(old_0, old_1)] = new_idx
+                        token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, new_idx)
+                        self.merge_rules[(old_0, old_1)] = new_idx
+                        self.vocab[new_idx] = self.vocab[old_0] + self.vocab[old_1]
+                        self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]] = new_idx
+                        new_idx += 1
 
         self.save()
     
@@ -181,7 +161,7 @@ class BPEModel:
         for token in tokens:
             if token in self.inverse_vocab:
                 # token_ids.append(self.inverse_vocab[token])
-                token_ids.append(self.inverse_vocab[token][0])
+                token_ids.append(self.inverse_vocab[token])
             else:
                 token_ids.extend(self.tokenize_with_bpe(token))
 
@@ -189,7 +169,9 @@ class BPEModel:
 
 
     def tokenize_with_bpe(self, token):
-        token_ids = [self.inverse_vocab[char][0] for char in token]
+        
+        token_ids = [self.inverse_vocab[char] for char in token]
+        
 
         can_merge = True
         while can_merge and len(token_ids) > 1:
@@ -213,7 +195,7 @@ class BPEModel:
         return token_ids
     
 
-    def decode(self, token_ids):
+    def decode(self, token_ids, is_special = True):
         decoded_string = ""
 
         for token_id in token_ids:
@@ -223,7 +205,12 @@ class BPEModel:
             else:
                 decoded_string += token
 
-        # decoded_string = re.sub(r"(<MASK>)|(<PAD>)|(<CLS>)|(<SEP>)", "", decoded_string)
+        if not is_special:
+            decoded_string = decoded_string.replace("<CLS>", "")
+            decoded_string = decoded_string.replace("<SEP>", "")
+            decoded_string = decoded_string.replace("<MASK>", "")
+            decoded_string = decoded_string.replace("<PAD>", "")
+        
         return decoded_string
     
 
@@ -244,7 +231,7 @@ class BPEModel:
 
         for idx in mlm_idx:
             if idx != 0:
-                encoded[idx] = self.inverse_vocab["<MASK>"][0] 
+                encoded[idx] = self.inverse_vocab["<MASK>"] 
 
         return encoded
     
@@ -254,20 +241,10 @@ class BPEModel:
         
         indices = np.random.choice(range(len(tokens)), size = int(len(tokens) * mask_rate), replace = False)
         mlm_index = np.random.choice(indices, size = int(indices.shape[0] * 0.8), replace = False) 
-        
-        # indices = [x.item() for x in list(set(indices) - set(mlm_index))]
-        # random_index_list = np.random.choice(indices, size = int(len(indices) * 0.1), replace = False)
-
-        # indices = [x.item() for x in list(set(indices) - set(random_index_list))]
-        # same_index_list = np.random.choice(indices, size = int(len(indices) * 0.1), replace = False)
-
         mlm_index = [x.item() for x in mlm_index]
-        # random_index_list = [x.item() for x in random_index_list]
-        # same_index_list = [x.item() for x in same_index_list]
-
         for idx in mlm_index:
             if idx != 0:
-                tokens[idx] = self.inverse_vocab["<MASK>"][0]
+                tokens[idx] = self.inverse_vocab["<MASK>"]
 
 
         return tokens, mlm_index
@@ -280,7 +257,7 @@ class BERTTokenizer(BPEModel):
 
     def encode(self, text):
         token_ids =  super().encode(text)
-        token_ids.insert(0, self.inverse_vocab["<CLS>"][0])
+        token_ids.insert(0, self.inverse_vocab["<CLS>"])
         return token_ids
     
     def decode(self, token_ids):
