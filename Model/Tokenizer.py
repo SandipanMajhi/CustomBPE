@@ -65,7 +65,7 @@ class AutoTokenizer:
         for i in range(len(tokenized_texts)):
             if len(tokenized_texts[i]) < self.max_tokens:
                 attention_masks[i].extend([float('-inf')] * (self.max_tokens - len(tokenized_texts[i])))
-                tokenized_texts[i].extend([self.bpe_model.inverse_vocab["<PAD>"][0]] * (self.max_tokens - len(tokenized_texts[i])))
+                tokenized_texts[i].extend([self.bpe_model.inverse_vocab["<PAD>"]] * (self.max_tokens - len(tokenized_texts[i])))
 
         ### Convert to tensors ###
         if self.return_tensors:
@@ -135,7 +135,7 @@ class MLMTokenizer(AutoTokenizer):
             if len(tokenized_texts[i]) < self.max_tokens:
                 targets[i].extend([-100] * (self.max_tokens - len(tokenized_texts[i])))
                 attention_masks[i].extend([float('-inf')] * (self.max_tokens - len(tokenized_texts[i])))
-                tokenized_texts[i].extend([self.bpe_model.inverse_vocab["<PAD>"][0]] * (self.max_tokens - len(tokenized_texts[i])))
+                tokenized_texts[i].extend([self.bpe_model.inverse_vocab["<PAD>"]] * (self.max_tokens - len(tokenized_texts[i])))
 
         ### Convert to tensors ###
         if self.return_tensors:
