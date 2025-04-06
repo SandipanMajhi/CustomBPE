@@ -14,9 +14,10 @@ class BPEModel:
         self.merge_rules = {}
         self.inverse_vocab = {}
 
-        self.vocab_size = max_vocab_size
+        self.max_vocab_size = max_vocab_size
 
-        self.save_root = "CustomBPE/Data"
+        # self.save_root = "CustomBPE/Data"
+        self.save_root = "Data"
         self.save_vocab_path = f"{self.save_root}/bpe_vocab.pkl"
         self.save_merge_path = f"{self.save_root}/bpe_merge.pkl"
         self.inverse_vocab_path = f"{self.save_root}/bpe_inverse_vocab.pkl"
@@ -79,28 +80,54 @@ class BPEModel:
             self.load_merge_rules()
             self.load_vocab()
 
-
         for char in unique_chars:
             if char not in self.inverse_vocab:
                 idx = len(self.vocab)
                 self.vocab[idx] = char
                 self.inverse_vocab[char] = [idx] 
 
-
-        # if len(self.inverse_vocab) < self.vocab_size:
-
         token_ids = self.encode(text)
-
-        for new_idx in range(len(self.vocab), self.vocab_size*3):
+        new_idx  = len(self.vocab)
+        
+        while(new_idx < self.max_vocab_size):
+            
             most_freq_pairs_idx = self.find_most_frequent(token_ids=token_ids)
             if most_freq_pairs_idx is None:
                 break
-            token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, new_idx)
-            batch_merge_rules[most_freq_pairs_idx] = new_idx
+
+            if most_freq_pairs_idx in self.merge_rules:
+                token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, self.merge_rules[most_freq_pairs_idx])
+
+            if most_freq_pairs_idx not in self.merge_rules:
+
+                # old_0, old_1 = most_freq_pairs_idx
+                # if old_0 in self.vocab and old_1 in self.vocab:
+                #     if self.vocab[old_0] + self.vocab[old_1] in self.inverse_vocab:
+
+                #         batch_merge_rules[(old_0, old_1)] = self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]][0]
+                #         token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, batch_merge_rules[(old_0, old_1)])
+
+                #     else:
+
+                #         token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, new_idx)
+                #         batch_merge_rules[(old_0, old_1)] = new_idx
+                #         new_idx += 1
+
+                token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, new_idx)
+                batch_merge_rules[most_freq_pairs_idx] = new_idx
+                new_idx += 1
+
+
+        # for new_idx in range(len(self.vocab), self.vocab_size*3):
+        #     most_freq_pairs_idx = self.find_most_frequent(token_ids=token_ids)
+        #     if most_freq_pairs_idx is None:
+        #         break
+        #     token_ids = self.replace_pairs(token_ids, most_freq_pairs_idx, new_idx)
+        #     batch_merge_rules[most_freq_pairs_idx] = new_idx
             
+
         for (old_0, old_1), new_idx in batch_merge_rules.items():
             self.vocab[new_idx] = self.vocab[old_0] + self.vocab[old_1]
-            # self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]] = new_idx
             if self.vocab[old_0] + self.vocab[old_1] not in self.inverse_vocab:
                 self.inverse_vocab[self.vocab[old_0] + self.vocab[old_1]] = [new_idx]
             else:
