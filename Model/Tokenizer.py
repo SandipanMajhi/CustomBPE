@@ -2,8 +2,8 @@ import torch
 
 
 import re
-from Model.BPE import BPEModel
-# from CustomBPE.Model.BPE import BPEModel
+# from Model.BPE import BPEModel
+from CustomBPE.Model.BPE import BPEModel
 
 
 class AutoTokenizer:
@@ -105,16 +105,16 @@ class MLMTokenizer(AutoTokenizer):
         ### Tokenize the texts
         for text in texts:
             original_tokens = self.bpe_model.encode(text)
-            tokens, mlm_ids = self.bpe_model.prepare_mlm(original_tokens, self.mask_rate)
+            tokens, mlm_ids, unmasked_ids = self.bpe_model.prepare_mlm(original_tokens, self.mask_rate)
             tokenized_texts.append(tokens)
-            attention_masks.append([0] * len(tokens))
+            attention_masks.append([1] * len(tokens))
 
             
             ### Create target ###
             target = [-100] * len(tokens)
 
-            for i in mlm_ids:
-                target[i] = original_tokens[i]
+            for i in range(len(mlm_ids)):
+                target[mlm_ids[i]] = unmasked_ids[i]
 
             targets.append(target)
 
@@ -134,7 +134,7 @@ class MLMTokenizer(AutoTokenizer):
         for i in range(len(tokenized_texts)):
             if len(tokenized_texts[i]) < self.max_tokens:
                 targets[i].extend([-100] * (self.max_tokens - len(tokenized_texts[i])))
-                attention_masks[i].extend([float('-inf')] * (self.max_tokens - len(tokenized_texts[i])))
+                attention_masks[i].extend([0] * (self.max_tokens - len(tokenized_texts[i])))
                 tokenized_texts[i].extend([self.bpe_model.inverse_vocab["<PAD>"]] * (self.max_tokens - len(tokenized_texts[i])))
 
         ### Convert to tensors ###

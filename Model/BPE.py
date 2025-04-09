@@ -16,8 +16,8 @@ class BPEModel:
 
         self.max_vocab_size = max_vocab_size
 
-        # self.save_root = "CustomBPE/Data"
-        self.save_root = "Data"
+        self.save_root = "CustomBPE/Data"
+        # self.save_root = "Data"
         self.save_vocab_path = f"{self.save_root}/bpe_vocab.pkl"
         self.save_merge_path = f"{self.save_root}/bpe_merge.pkl"
         self.inverse_vocab_path = f"{self.save_root}/bpe_inverse_vocab.pkl"
@@ -205,6 +205,8 @@ class BPEModel:
             else:
                 decoded_string += token
 
+        decoded_string = decoded_string.replace("#", " ")
+
         if not is_special:
             decoded_string = decoded_string.replace("<CLS>", "")
             decoded_string = decoded_string.replace("<SEP>", "")
@@ -240,14 +242,15 @@ class BPEModel:
     def prepare_mlm(self, tokens, mask_rate = 0.15):
         
         indices = np.random.choice(range(len(tokens)), size = int(len(tokens) * mask_rate), replace = False)
-        mlm_index = np.random.choice(indices, size = int(indices.shape[0] * 0.8), replace = False) 
+        mlm_index = np.random.choice(indices, size = int(indices.shape[0]), replace = False) 
         mlm_index = [x.item() for x in mlm_index]
+        unmasked_ids = [tokens[i] for i in mlm_index]
         for idx in mlm_index:
             if idx != 0:
                 tokens[idx] = self.inverse_vocab["<MASK>"]
 
 
-        return tokens, mlm_index
+        return tokens, mlm_index, unmasked_ids
 
 
 
