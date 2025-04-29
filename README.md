@@ -4,7 +4,7 @@ BPE Tokenizer for LLMs.
 ### Training ###
 The training was done on Bookcorpus text. The tokenizer part makes the model `uncased`. 
 
-`Unique Vocabulary Size = 150,000`
+`Unique Vocabulary Size = 35,000`
 
 Check out the `bpe_train.py` for training purposes.
 
